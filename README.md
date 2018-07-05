@@ -2,6 +2,9 @@
 
 > A Vue.js project
 
+build nice report with echarts in sharepoint.
+
+
 ## Build Setup
 
 ``` bash

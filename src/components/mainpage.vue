@@ -1,7 +1,10 @@
 <template>
  <div>
    <el-row class="top">
-      <el-col :span="12" :offset="4">
+     <el-col :span="2" :offset="2">
+       <el-button v-on:click="backToMainPage" size="mini" icon="el-icon-d-arrow-left">回到主页</el-button>
+     </el-col>
+      <el-col :span="10" :offset="2">
         <el-date-picker class="monthPicker" size="mini" v-model="startMonth" type="month" placeholder="请选择起始月份">
         </el-date-picker>
         <el-date-picker class="monthPicker" size="mini"  v-model="endMonth" type="month" placeholder="请选择结束月份">
@@ -14,14 +17,23 @@
    <el-row>
      <el-col :span="22" :offset="1">
         <el-tabs v-model="activeTab" type="card" @tab-click="handleClick">
-          <el-tab-pane label="有效的CIP" name="first">
+           <el-tab-pane label="汇总数据" name="first" lazy="true">
+            <DTReport2 ref="dtrView" v-bind:monthList="monthList"></DTReport2>
+          </el-tab-pane>
+          <!-- <el-tab-pane label="有效的CIP" name="first" lazy="true">
             <div class="echarts">
               <IEcharts :option="chartData1" :loading="loading" />
             </div>
-          </el-tab-pane>
+          </el-tab-pane> -->
           <el-tab-pane label="积分汇总表" name="second">
             <Summary v-bind:monthList="monthList"></Summary>
           </el-tab-pane>
+          <el-tab-pane  label="参入率" name="third" lazy="true">
+            <ActiveUser v-bind:monthList="monthList"></ActiveUser>
+          </el-tab-pane>
+          <!-- <el-tab-pane label="Test" name="third" lazy="true">
+            <DTReportWithTimeLine v-bind:monthList="monthList"></DTReportWithTimeLine>
+          </el-tab-pane> -->
         </el-tabs>
         
      </el-col>
@@ -35,15 +47,18 @@
 import pnp, {Web} from 'sp-pnp-js';
 //import IEcharts from 'vue-echarts-v3/src/full.js';
 import databuilder from '../dataHelper/databuilder.js';
-import IEcharts from 'vue-echarts-v3/src/lite.js';
-import 'echarts/lib/chart/bar';
-import 'echarts/lib/component/legend';
-import 'echarts/lib/component/title';
-import 'echarts/lib/component/tooltip';
-import 'echarts/lib/component/grid';
+// import IEcharts from 'vue-echarts-v3/src/lite.js';
+// import 'echarts/lib/chart/bar';
+// import 'echarts/lib/component/legend';
+// import 'echarts/lib/component/title';
+// import 'echarts/lib/component/tooltip';
+// import 'echarts/lib/component/grid';
 //import func from './vue-temp/vue-editor-bridge.js';
 import { Loading } from 'element-ui';
 import Summary from './Summary';
+import DTReportWithTimeLine from './DTReportWithTimeLine';
+import DTReport2 from './DTReport2';
+import ActiveUser from './ActiveUser';
 
 var buckets = require('buckets-js');
 
@@ -114,12 +129,15 @@ export default {
     }
   },
   components: {
-      IEcharts, Summary
+       Summary,DTReportWithTimeLine,DTReport2,ActiveUser
   }, 
   created () {
     this.loadUserList();
   },
   methods: {
+    backToMainPage: function() {
+        window.open("https://teamshare.zeiss.org/team/06330/1600929","_self");
+    },
     ShowLoadingView: function() {
         Loading.service({ fullscreen: true });
     },
@@ -131,50 +149,76 @@ export default {
         var ymList = databuilder.getMonthRangeList(this.startMonth, this.endMonth);
         this.monthList = ymList;
         console.dir(ymList);
+        this.$refs.dtrView.setOpts(ymList);
+        return;
 
-        this.ShowLoadingView();
-        pnp.setup({
-            sp: {
-                headers: {
-                    "Accept": "application/json; odata=verbose"
-                },
-                baseUrl: "https://teamshare.zeiss.org/team/06330/1600929"
-            }
-        });
+        //this.ShowLoadingView();
+        // pnp.setup({
+        //     sp: {
+        //         headers: {
+        //             "Accept": "application/json; odata=verbose"
+        //             //,
+        //             //"Access-Control-Allow-Origin": "*"
+        //         },
+        //         baseUrl: "https://teamshare.zeiss.org/team/06330/1600929"
+        //     }
+        // });
         pnp.sp.web.lists.getByTitle("CIPV2").items.select(
           "Title","RBEmployeeNO","RBName","RBMgrName","RBDepartment","RBTeam","RBMgrApproveDate","TargetDepartment",
           "TargetTeam","FormStatus","TargetImplementer/Name","ImplementationDate","ImplementEmployeeNo","Created",
           "AdminAwardDate","ScoreOfSuggest","ScoreOfImplementer","TargetMgrApproveDate","RequesterConfirmDate"
           ).expand("TargetImplementer/Name").filter("FormStatus ne 'Draft' and FormStatus ne 'Rejected'")
-        .orderBy("Created",false).getAll().then(
+        .orderBy("RBMgrApproveDate",true).getAll().then(
             r => {
-              this.HideLoadingView();
+              //this.HideLoadingView();
               this.$store.commit('initCIPDateList',r);
-              var dataResult = databuilder.buildDataForReport1(r, this.departmentList, this.teamList, this.monthList);
-              this.chartData1.legend.data = this.departmentList;
-              var monthArr =  buckets.arrays.copy(this.monthList);
-              monthArr.push("Total");
-              this.chartData1.xAxis[0].data = monthArr;
-              this.chartData1.series = dataResult;
-              this.loading = false;
+              this.$refs.dtrView.setOpts(ymList);
+              //var dataResult = databuilder.buildDataForReport1(r, this.departmentList, this.teamList, this.monthList);
+              //this.chartData1.legend.data = this.departmentList;
+              //var monthArr =  buckets.arrays.copy(this.monthList);
+              //monthArr.push("Total");
+              //this.chartData1.xAxis[0].data = monthArr;
+              //this.chartData1.series = dataResult;
+              //this.loading = false;
             }
-          );
+          ).catch((error) => {
+            console.dir(error);
+          });
     },
+    
     loadUserList: function() {
         this.ShowLoadingView();
         pnp.setup({
             sp: {
                 headers: {
                     "Accept": "application/json; odata=verbose"
+                    //,
+                    //"Access-Control-Allow-Origin": "*"
                 },
                 baseUrl: "https://teamshare.zeiss.org/team/06330/1600929"
             }
         });
         pnp.sp.web.lists.getByTitle("IMTUserList").items.select("User/Name","User/UserName","User/Title","Department","Team","EmployeeNo").expand("User/Name","User/UserName","User/Title").orderBy("Department,Team").getAll().then(
           r => {
-            this.HideLoadingView();
+            //this.HideLoadingView();
             this.$store.commit('initUserList',r);
             this.departmentList = this.$store.state.departmentList;
+
+             pnp.sp.web.lists.getByTitle("CIPV2").items.select(
+          "Title","RBEmployeeNO","RBName","RBMgrName","RBDepartment","RBTeam","RBMgrApproveDate","TargetDepartment",
+          "TargetTeam","FormStatus","TargetImplementer/Name","ImplementationDate","ImplementEmployeeNo","Created",
+          "AdminAwardDate","ScoreOfSuggest","ScoreOfImplementer","TargetMgrApproveDate","RequesterConfirmDate"
+          ).expand("TargetImplementer/Name").filter("FormStatus ne 'Draft' and FormStatus ne 'Rejected'")
+        .orderBy("RBMgrApproveDate",true).getAll().then(
+            r => {
+              this.HideLoadingView();
+              this.$store.commit('initCIPDateList',r);
+              //this.$refs.dtrView.setOpts();
+              
+            }
+          ).catch((error) => {
+            console.dir(error);
+          });
           }
         );
     },
@@ -217,6 +261,6 @@ export default {
  margin-right: 30px;
 }
 .top {
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 </style>

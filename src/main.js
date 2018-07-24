@@ -4,8 +4,16 @@ import Vue from 'vue'
 import App from './App'
 import store from './store'
 import { Button, Select, DatePicker, loading, TabPane, Tabs, Row, Col, Table, TableColumn } from 'element-ui';
+import IEcharts from 'vue-echarts-v3/src/full.js';
 
+import 'whatwg-fetch'
+import VueFetch from 'vue-fetch'
+
+Vue.use(VueFetch, {
+    polyfill: true //should vue-fetch load promise polyfill, set to false to use customer polyfill
+});
 require('es6-promise').polyfill();
+//require('fetch').polyfill();
 Vue.config.productionTip = false;
 
 Vue.component(Button.name, Button);
@@ -18,6 +26,7 @@ Vue.component(Row.name, Row);
 Vue.component(Col.name, Col);
 Vue.component(Table.name, Table);
 Vue.component(TableColumn.name, TableColumn);
+Vue.component(IEcharts.name, IEcharts);
 
 /* eslint-disable no-new */
 new Vue({

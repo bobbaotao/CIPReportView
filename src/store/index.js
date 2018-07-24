@@ -10,7 +10,7 @@ const state = {
     userList: [], //[{Name: "", EmployeeNo: "", Department: "", Team: "" , DepartmentTeam: ""},{}]
     cipDataList: [],
     departmentList: [], //["a","b","c"]
-    TeamList: [] //[{depaetment:"d1", Team: "t1", name: "d1-t1"},{depaetment:"d2", Team: "t2", name: "d2-t2"}]
+    TeamList: array() //[{depaetment:"d1", Team: "t1", name: "d1-t1"},{depaetment:"d2", Team: "t2", name: "d2-t2"}]
 }
 
 const mutations = {
@@ -41,7 +41,7 @@ const mutations = {
 
             state.userList = uList.unique().toArray();
             state.departmentList = uList.unique('Department').map('Department').toArray();
-            state.TeamList = tList.unique().toArray();
+            state.TeamList = tList.unique('DepartmentTeam');
         }
     },
     // TotalActiveNum: 0,
@@ -58,10 +58,12 @@ const mutations = {
                 userItem.AcceptOnTimeNum = 0;
                 userItem.ClosedNum = 0;
                 userItem.ClosedDays = 0;
-                if (userItem.TargetMgrApproveDate != null) {
+                if (userItem.RBMgrApproveDate != null) {
                     userItem.ActiveNum = 1;
+                }
+                if (userItem.ImplementationDate != null) {
                     var mRBMDate = moment(userItem.RBMgrApproveDate);
-                    var mTARMDate = moment(userItem.TargetMgrApproveDate);
+                    var mTARMDate = moment(userItem.ImplementationDate);
                     var acceptDays = mTARMDate.diff(mRBMDate, 'days');
                     if (acceptDays <= 7) {
                         userItem.AcceptOnTimeNum = 1;
